@@ -12,36 +12,25 @@ def get_conn():
     )
 
 # --- prices ---
-def insert_price(stock_id, date, close):
-    conn = get_conn()
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO prices (stock_id, trade_date, close)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (stock_id, trade_date) DO NOTHING;
-    """, (stock_id, date, close))
-    conn.commit()
-    cur.close()
-    conn.close()
+def insert_price(stock_id, date, close, conn):
+    with conn.cursor() as cur:
+    	cur.execute("""
+        	INSERT INTO prices (stock_id, trade_date, close)
+        	VALUES (%s, %s, %s)
+        	ON CONFLICT (stock_id, trade_date) DO NOTHING;
+    	""", (stock_id, date, close))
 
-def get_prices(stock_id):
-    conn = get_conn()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT trade_date, close FROM prices
-        WHERE stock_id=%s
-        ORDER BY trade_date ASC;
-    """, (stock_id,))
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-    return rows
+def get_prices(stock_id, conn):
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT trade_date, close FROM prices
+            WHERE stock_id=%s
+            ORDER BY trade_date ASC;
+        """, (stock_id,))
+        return cur.fetchall()
 
 # --- history_trends ---
-def insert_trend(stock_id, date, sma_short, sma_long, diff, trend):
-    conn = get_conn()
-    cur = conn.cursor()
+def insert_trend(stock_id, date, sma_short, sma_long, diff, trend, conn):
 
     # Конвертируем np.float64 → float
     if sma_short is not None:
@@ -51,13 +40,11 @@ def insert_trend(stock_id, date, sma_short, sma_long, diff, trend):
     if diff is not None:
         diff = float(diff)
 
-    cur.execute("""
-        INSERT INTO history_trends (
-            stock_id, calculated_at, days, sma_short, sma_long, diff_percent, trend
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (stock_id, calculated_at) DO NOTHING;
-    """, (stock_id, date, 30, sma_short, sma_long, diff, trend))
-    conn.commit()
-    cur.close()
-    conn.close()
+    with conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO history_trends (
+                stock_id, calculated_at, days, sma_short, sma_long, diff_percent, trend
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (stock_id, calculated_at) DO NOTHING;
+        """, (stock_id, date, 30, sma_short, sma_long, diff, trend))
